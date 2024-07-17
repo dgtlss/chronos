@@ -18,32 +18,32 @@ Here's the updated list with the information required, without using code blocks
 - [x] timestamp // Get Unix timestamp
 - [x] quarter // Get the quarter of the year
 - [x] dayOfWeek, dayOfYear, weekOfYear, daysInMonth, weeksInYear // Get various date-related information
-- [ ] age // Get the age based on the instance's date
+- [~] age // Get the age based on the instance's date
 
 ## Setters
 - [x] setDate(), setTime(), setDateTime() // Set specific components of the date and time
-- [ ] setTimezone() // Set the timezone for the instance
+- [~] setTimezone() // Set the timezone for the instance
 
 ## Manipulation
 - [x] addYears(), addMonths(), addDays(), addHours(), addMinutes(), addSeconds() // Add time to the instance
 - [x] subYears(), subMonths(), subDays(), subHours(), subMinutes(), subSeconds() // Subtract time from the instance
 - [x] startOfDay(), endOfDay(), startOfMonth(), endOfMonth(), startOfYear(), endOfYear() // Set time to the start or end of a period
-- [ ] next(), previous() // Get the next or previous occurrence of a day of the week
+- [x] next(), previous() // Get the next or previous occurrence of a day of the week
 
 ## Difference and Comparison
-- [ ] diffForHumans() // Get a human-readable difference between two dates
+- [x] diffForHumans() // Get a human-readable difference between two dates
 - [x] diff() // Get the difference between two dates in various units
 - [x] eq(), ne(), gt(), gte(), lt(), lte() // Compare two dates
 - [x] between(), isBetween() // Check if a date is between two other dates
-- [ ] closest(), farthest() // Get the closest or farthest date from a given set
+- [x] closest(), farthest() // Get the closest or farthest date from a given set
 
 ## Formatting and Parsing
 - [x] format() // Format the date according to a specified format string
 - [x] toDateString(), toTimeString(), toDateTimeString() // Convert to various string formats
-- [ ] toArray(), toObject() // Convert to array or object representation
+- [x] toArray(), toObject() // Convert to array or object representation
 
 ## Localization
-- [ ] setLocale() // Set the locale for date formatting
+- [x] setLocale() // Set the locale for date formatting
 - [ ] translatedFormat() // Format the date using translated strings
 
 ## Testing and Validation
