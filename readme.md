@@ -1,5 +1,8 @@
 # Chronos
 
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/dwyl/esta/issues)
+
+
 Chronos is a lightweight, timezone-aware date and time manipulation library for JavaScript. It provides an intuitive API for parsing, manipulating, and formatting dates and times.
 
 ## Features
