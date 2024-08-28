@@ -1,8 +1,13 @@
-// Chronos JS Library
-// version: 1.1.0
-// license: MIT
-// author: Nathan Langer
-// website: chronosjs.com
+/*
+|--------------------------------------------------------------------------
+| Chronos JS Library
+|--------------------------------------------------------------------------
+|
+| Version: 1.0.0
+| Author: Nathan Langer
+| Website: github.com/dgtlss/chronos
+|
+*/
 
 (function(global) {
   'use strict';
