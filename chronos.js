@@ -15,20 +15,36 @@
     }
 
     _parseInput(input) {
-      if (input instanceof Date) return new Date(input);
-      if (typeof input === 'string') return new Date(input);
-      if (typeof input === 'number') return new Date(input);
-      return new Date();
+      if (input instanceof Date) {
+        return new Date(Date.UTC(input.getUTCFullYear(), input.getUTCMonth(), input.getUTCDate(), input.getUTCHours(), input.getUTCMinutes(), input.getUTCSeconds(), input.getUTCMilliseconds()));
+      } else if (input instanceof Chronos) {
+        return new Date(input._date);
+      } else if (typeof input === 'string') {
+        return new Date(input);
+      } else if (typeof input === 'number') {
+        return new Date(input);
+      } else if (input === undefined) {
+        return new Date(); // Handle case for Chronos.now()
+      }
+      throw new Error('Invalid input type for Chronos');
+    }
+
+    _getDateInTimezone() {
+      return new Date(this._date.toLocaleString('en-US', { timeZone: this._timezone }));
+    }
+
+    _createNewChronos(year, month, day, hours = 0, minutes = 0, seconds = 0, milliseconds = 0) {
+      return new Chronos(Date.UTC(year, month, day, hours, minutes, seconds, milliseconds), this._timezone);
     }
 
     // Getter methods
-    year() { return this._date.getFullYear(); }
-    month() { return this._date.getMonth() + 1; }
-    date() { return this._date.getDate(); }
-    day() { return this._date.getDay(); }
-    hours() { return this._date.getHours(); }
-    minutes() { return this._date.getMinutes(); }
-    seconds() { return this._date.getSeconds(); }
+    year() { return this._getDateInTimezone().getFullYear(); }
+    month() { return this._getDateInTimezone().getMonth() + 1; }
+    date() { return this._getDateInTimezone().getDate(); }
+    day() { return this._getDateInTimezone().getDay(); }
+    hours() { return this._getDateInTimezone().getHours(); }
+    minutes() { return this._getDateInTimezone().getMinutes(); }
+    seconds() { return this._getDateInTimezone().getSeconds(); }
     milliseconds() { return this._date.getMilliseconds(); }
     timestamp() { return Math.floor(this._date.getTime() / 1000); }
 
@@ -36,15 +52,57 @@
     add(value, unit) {
       const newDate = new Date(this._date);
       switch (unit) {
-        case 'years': newDate.setFullYear(newDate.getFullYear() + value); break;
-        case 'months': newDate.setMonth(newDate.getMonth() + value); break;
-        case 'days': newDate.setDate(newDate.getDate() + value); break;
-        case 'hours': newDate.setHours(newDate.getHours() + value); break;
-        case 'minutes': newDate.setMinutes(newDate.getMinutes() + value); break;
-        case 'seconds': newDate.setSeconds(newDate.getSeconds() + value); break;
-        default: throw new Error('Invalid unit');
+        case 'years':
+        case 'year':
+        case 'y':
+          newDate.setUTCFullYear(newDate.getUTCFullYear() + value);
+          break;
+        case 'months':
+        case 'month':
+        case 'M':
+          newDate.setUTCMonth(newDate.getUTCMonth() + value);
+          break;
+        case 'weeks':
+        case 'week':
+        case 'w':
+          newDate.setUTCDate(newDate.getUTCDate() + value * 7);
+          break;
+        case 'days':
+        case 'day':
+        case 'd':
+          newDate.setUTCDate(newDate.getUTCDate() + value);
+          break;
+        case 'hours':
+        case 'hour':
+        case 'h':
+          newDate.setUTCHours(newDate.getUTCHours() + value);
+          break;
+        case 'minutes':
+        case 'minute':
+        case 'm':
+          newDate.setUTCMinutes(newDate.getUTCMinutes() + value);
+          break;
+        case 'seconds':
+        case 'second':
+        case 's':
+          newDate.setUTCSeconds(newDate.getUTCSeconds() + value);
+          break;
+        default:
+          throw new Error('Invalid unit: ' + unit);
       }
-      return new Chronos(newDate);
+      return new Chronos(newDate, this._timezone);
+    }
+
+    age(referenceDate = new Date()) {
+      const birthDate = this._date;
+      let age = referenceDate.getFullYear() - birthDate.getFullYear();
+      const monthDiff = referenceDate.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && referenceDate.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      return age;
     }
 
     subtract(value, unit) {
@@ -116,50 +174,20 @@
 
     // Formatting methods
     format(formatString) {
-      const options = {
-        timeZone: this._timezone,
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-        second: 'numeric',
-        hour12: formatString.includes('a') || formatString.includes('A')
-      };
-
-      const formatter = new Intl.DateTimeFormat(this._locale, options);
-      const parts = formatter.formatToParts(this._date);
-
-      const getPartValue = (type) => {
-        const part = parts.find(p => p.type === type);
-        return part ? part.value : '';
-      };
-
-      const tokens = {
-        YYYY: getPartValue('year'),
-        YY: getPartValue('year').slice(-2),
-        MMMM: new Intl.DateTimeFormat(this._locale, { month: 'long' }).format(this._date),
-        MMM: new Intl.DateTimeFormat(this._locale, { month: 'short' }).format(this._date),
-        MM: getPartValue('month').padStart(2, '0'),
-        M: getPartValue('month'),
-        DD: getPartValue('day').padStart(2, '0'),
-        D: getPartValue('day'),
-        dddd: new Intl.DateTimeFormat(this._locale, { weekday: 'long' }).format(this._date),
-        ddd: new Intl.DateTimeFormat(this._locale, { weekday: 'short' }).format(this._date),
-        HH: getPartValue('hour').padStart(2, '0'),
-        H: getPartValue('hour'),
-        hh: (parseInt(getPartValue('hour')) % 12 || 12).toString().padStart(2, '0'),
-        h: (parseInt(getPartValue('hour')) % 12 || 12).toString(),
-        mm: getPartValue('minute').padStart(2, '0'),
-        m: getPartValue('minute'),
-        ss: getPartValue('second').padStart(2, '0'),
-        s: getPartValue('second'),
-        SSS: this.milliseconds().toString().padStart(3, '0'),
-        A: getPartValue('dayPeriod').toUpperCase(),
-        a: getPartValue('dayPeriod').toLowerCase()
-      };
-
-      return formatString.replace(/(\w+)/g, match => tokens[match] || match);
+      const date = new Date(this._date.toLocaleString('en-US', { timeZone: this._timezone }));
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      
+      return formatString.replace('YYYY', year)
+                         .replace('MM', month)
+                         .replace('DD', day)
+                         .replace('HH', hours)
+                         .replace('mm', minutes)
+                         .replace('ss', seconds);
     }
 
     getMonthName() {
@@ -178,11 +206,13 @@
     }
 
     isAfter(other) {
-      return this._date > Chronos.parse(other)._date;
+      const otherChronos = other instanceof Chronos ? other : new Chronos(other);
+      return this.valueOf() > otherChronos.valueOf();
     }
 
     isSame(other) {
-      return this._date.getTime() === Chronos.parse(other)._date.getTime();
+      const otherChronos = other instanceof Chronos ? other : new Chronos(other);
+      return this.valueOf() === otherChronos.valueOf();
     }
 
     isBetween(start, end) {
@@ -268,7 +298,7 @@
     }
     
     toArray() {
-      const date = new Date(this._date.toLocaleString('en-US', { timeZone: this._timezone }));
+      const date = this._getDateInTimezone();
       return [
         date.getFullYear(),
         date.getMonth() + 1, // JavaScript months are 0-indexed
@@ -281,7 +311,7 @@
     }
 
     toObject() {
-      const date = new Date(this._date.toLocaleString('en-US', { timeZone: this._timezone }));
+      const date = this._getDateInTimezone();
       return {
         year: date.getFullYear(),
         month: date.getMonth() + 1, // JavaScript months are 0-indexed
@@ -296,16 +326,67 @@
       };
     }
 
-    
-    // Static methods
-    static now() {
-      return new Chronos();
+    firstOfMonth() {
+      return this._createNewChronos(this.year(), this.month() - 1, 1, this.hours(), this.minutes(), this.seconds(), this.milliseconds());
     }
 
-    static parse(input, locale = 'en-US') {
-      const chronos = new Chronos(input);
-      chronos.setLocale(locale);
-      return chronos;
+    lastOfMonth() {
+      return this._createNewChronos(this.year(), this.month(), 0, this.hours(), this.minutes(), this.seconds(), this.milliseconds());
+    }
+
+    nthOfMonth(n, dayOfWeek) {
+      const firstDay = this.firstOfMonth();
+      const firstDayOfWeek = firstDay.day();
+      let dayOffset = dayOfWeek - firstDayOfWeek;
+      if (dayOffset < 0) dayOffset += 7;
+      const dateOfMonth = 1 + dayOffset + (n - 1) * 7;
+      return this._createNewChronos(this.year(), this.month() - 1, dateOfMonth, this.hours(), this.minutes(), this.seconds(), this.milliseconds());
+    }
+
+    firstOfQuarter() {
+      const quarterStartMonth = Math.floor((this.month() - 1) / 3) * 3;
+      return this._createNewChronos(this.year(), quarterStartMonth, 1, this.hours(), this.minutes(), this.seconds(), this.milliseconds());
+    }
+
+    lastOfQuarter() {
+      const quarterStartMonth = Math.floor((this.month() - 1) / 3) * 3;
+      return this._createNewChronos(this.year(), quarterStartMonth + 3, 0, this.hours(), this.minutes(), this.seconds(), this.milliseconds());
+    }
+
+    nthOfQuarter(n, dayOfWeek) {
+      const firstDayOfQuarter = this.firstOfQuarter();
+      const firstDayOfWeek = firstDayOfQuarter.day();
+      let dayOffset = dayOfWeek - firstDayOfWeek;
+      if (dayOffset < 0) dayOffset += 7;
+      const dateOfQuarter = 1 + dayOffset + (n - 1) * 7;
+      return this._createNewChronos(firstDayOfQuarter.year(), firstDayOfQuarter.month() - 1, dateOfQuarter, this.hours(), this.minutes(), this.seconds(), this.milliseconds());
+    }
+
+    firstOfYear() {
+      return this._createNewChronos(this.year(), 0, 1, this.hours(), this.minutes(), this.seconds(), this.milliseconds());
+    }
+
+    lastOfYear() {
+      return this._createNewChronos(this.year(), 11, 31, this.hours(), this.minutes(), this.seconds(), this.milliseconds());
+    }
+
+    nthOfYear(n, dayOfWeek) {
+      const firstDayOfYear = this.firstOfYear();
+      const firstDayOfWeek = firstDayOfYear.day();
+      let dayOffset = dayOfWeek - firstDayOfWeek;
+      if (dayOffset < 0) dayOffset += 7;
+      const dateOfYear = 1 + dayOffset + (n - 1) * 7;
+      return this._createNewChronos(this.year(), 0, dateOfYear, this.hours(), this.minutes(), this.seconds(), this.milliseconds());
+    }
+
+    
+    // Static methods
+    static now(timezone = 'UTC') {
+      return new Chronos(new Date(), timezone);
+    }
+
+    static parse(input, timezone = 'UTC') {
+      return new Chronos(input, timezone);
     }
 
     static closest(dates) {
@@ -501,6 +582,74 @@
 
     static makeDateTimeString(timestamp) {
       return new Chronos(timestamp).format('YYYY-MM-DD HH:mm:ss');
+    }
+
+    setTimezone(timezone) {
+      if (typeof timezone !== 'string') {
+        throw new Error('Timezone must be a string');
+      }
+
+      try {
+        // Test if the timezone is valid
+        Intl.DateTimeFormat('en-US', { timeZone: timezone });
+        this._timezone = timezone;
+        return this;
+      } catch (e) {
+        throw new Error('Invalid timezone');
+      }
+    }
+
+    translatedFormat(formatString, translations = {}) {
+      const date = this._getDateInTimezone();
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const day = date.getDate();
+      const weekday = date.getDay();
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      const seconds = date.getSeconds();
+
+      const defaultTranslations = {
+        months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+        monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        weekdays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        weekdaysShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        meridiem: (hours, minutes, isLower) => {
+          const m = hours > 11 ? 'PM' : 'AM';
+          return isLower ? m.toLowerCase() : m;
+        }
+      };
+
+      const trans = { ...defaultTranslations, ...translations };
+
+      return formatString.replace(/\[([^\]]+)]|Y{1,4}|M{1,4}|D{1,2}|d{1,4}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}/g, (match) => {
+        if (match[0] === '[' && match[match.length - 1] === ']') {
+          return match.slice(1, -1);
+        }
+        switch (match) {
+          case 'YYYY': return year;
+          case 'YY': return String(year).slice(-2);
+          case 'MMMM': return trans.months[month];
+          case 'MMM': return trans.monthsShort[month];
+          case 'MM': return String(month + 1).padStart(2, '0');
+          case 'M': return String(month + 1);
+          case 'DD': return String(day).padStart(2, '0');
+          case 'D': return String(day);
+          case 'dddd': return trans.weekdays[weekday];
+          case 'ddd': return trans.weekdaysShort[weekday];
+          case 'HH': return String(hours).padStart(2, '0');
+          case 'H': return String(hours);
+          case 'hh': return String(hours % 12 || 12).padStart(2, '0');
+          case 'h': return String(hours % 12 || 12);
+          case 'mm': return String(minutes).padStart(2, '0');
+          case 'm': return String(minutes);
+          case 'ss': return String(seconds).padStart(2, '0');
+          case 's': return String(seconds);
+          case 'a': return trans.meridiem(hours, minutes, true);
+          case 'A': return trans.meridiem(hours, minutes, false);
+          default: return match;
+        }
+      });
     }
   }
 
