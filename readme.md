@@ -4,10 +4,10 @@ Chronos is a powerful and user-friendly JavaScript library for working with date
 
 ## Getting Started
 
-To use Chronos in your project, include the `chronos.js` file in your HTML:
+To use Chronos in your project, include the `chronos.min.js` file in your HTML:
 
 ```html
-<script src="path/to/chronos.js"></script>
+<script src="path/to/chronos.min.js"></script>
 ```
 
 ## Creating a Chronos Object
