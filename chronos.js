@@ -656,6 +656,114 @@
         }
       });
     }
+
+    duration(other) {
+      const diff = Math.abs(this.valueOf() - Chronos.parse(other).valueOf());
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+
+      return {
+        milliseconds: diff,
+        seconds,
+        minutes,
+        hours,
+        days
+      };
+    }
+
+    addBusinessDays(days) {
+      let date = new Date(this._date);
+      let addedDays = 0;
+      while (addedDays < days) {
+        date.setDate(date.getDate() + 1);
+        if (date.getDay() !== 0 && date.getDay() !== 6) {
+          addedDays++;
+        }
+      }
+      return new Chronos(date, this._timezone);
+    }
+
+    /**
+     * Generates a calendar array for a given year and month.
+     * 
+     * @param {number} year - The year for which to generate the calendar.
+     * @param {number} month - The month for which to generate the calendar (1-12).
+     * @returns {Array} An array representing the calendar, where each element is either
+     *                  a Chronos object for a day in the month, or null for padding days.
+     *                  The array always contains a multiple of 7 elements to represent full weeks.
+     */
+    static generateCalendar(year, month) {
+      const firstDay = new Chronos(new Date(year, month - 1, 1));
+      const lastDay = new Chronos(new Date(year, month, 0));
+      const calendar = [];
+
+      for (let i = 0; i < firstDay.day(); i++) {
+        calendar.push(null);
+      }
+
+      for (let i = 1; i <= lastDay.date(); i++) {
+        calendar.push(new Chronos(new Date(year, month - 1, i)));
+      }
+
+      while (calendar.length % 7 !== 0) {
+        calendar.push(null);
+      }
+
+      return calendar;
+    }
+
+    fromNow() {
+      const now = Chronos.now().setTimezone(this._timezone);
+      return this.diffForHumans(now);
+    }
+
+    startOf(unit) {
+      const date = new Date(this._date);
+      switch (unit) {
+        case 'year':
+          date.setMonth(0, 1);
+          date.setHours(0, 0, 0, 0);
+          break;
+        case 'month':
+          date.setDate(1);
+          date.setHours(0, 0, 0, 0);
+          break;
+        case 'day':
+          date.setHours(0, 0, 0, 0);
+          break;
+        case 'hour':
+          date.setMinutes(0, 0, 0);
+          break;
+        default:
+          throw new Error('Invalid unit');
+      }
+      return new Chronos(date, this._timezone);
+    }
+
+    endOf(unit) {
+      const date = new Date(this._date);
+      switch (unit) {
+        case 'year':
+          date.setMonth(11, 31);
+          date.setHours(23, 59, 59, 999);
+          break;
+        case 'month':
+          date.setMonth(date.getMonth() + 1, 0);
+          date.setHours(23, 59, 59, 999);
+          break;
+        case 'day':
+          date.setHours(23, 59, 59, 999);
+          break;
+        case 'hour':
+          date.setMinutes(59, 59, 999);
+          break;
+        default:
+          throw new Error('Invalid unit');
+      }
+      return new Chronos(date, this._timezone);
+    }
   }
 
   // Make Chronos available globally
